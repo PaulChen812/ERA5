@@ -20,7 +20,7 @@ class GlobalTemperatureAnalyzer:
         self.latitude_range = latitude_range
         self.variable = variable
 
-        # Automatically detect year/month from directory string, assuming .../YYYY/MM/
+
         parts = self.directory.parts[-2:]
         try:
             self.year = int(parts[0])
@@ -36,7 +36,7 @@ class GlobalTemperatureAnalyzer:
         return var_sel.mean(dim="time")
 
     def plot_2d(self, spatial_avg: xr.DataArray, title: str, out_file: str):
-        # Ensure cyclic continuity at 0/360 longitude
+
         spatial_avg_cyclic, lon_cyclic = add_cyclic_point(
             spatial_avg.values,
             coord=spatial_avg["longitude"].values,
@@ -64,14 +64,14 @@ class GlobalTemperatureAnalyzer:
         gl.top_labels = False
         gl.right_labels = False
 
-        # Circular boundary
+
         theta = np.linspace(0, 2 * np.pi, 100)
         center, radius = [0.5, 0.5], 0.5
         verts = np.vstack([np.sin(theta), np.cos(theta)]).T
         circle = mpath.Path(verts * radius + center)
         ax.set_boundary(circle, transform=ax.transAxes)
 
-        # Plot with cyclic data
+  
         cf = ax.contourf(
             lon_cyclic,
             lat,
@@ -98,7 +98,7 @@ class GlobalTemperatureAnalyzer:
         plt.close()
 
     def __call__(self):
-        # Find all daily files for the month
+
         files = sorted(self.directory.glob("*.nc"))
         if len(files) == 0:
             raise RuntimeError(f"No .nc files found in {self.directory}")
@@ -118,7 +118,7 @@ class GlobalTemperatureAnalyzer:
 
 
 if __name__ == "__main__":
-    # Change this path to your directory containing the daily files for one month
+
     input_dir = "/global/cfs/cdirs/m3638/ERA5_Data/2m_temperature_daily/2025/01"
     gta = GlobalTemperatureAnalyzer(input_dir)
     gta()

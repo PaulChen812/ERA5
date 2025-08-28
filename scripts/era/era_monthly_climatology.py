@@ -3,7 +3,7 @@ import numpy as np
 
 
 infile = "ERA5_monthly_means_gridpoint.nc"
-outfile = "ERA5_monthly_climatology_12vars.nc"
+outfile = "ERA5_monthly_climatology_gridpoint.nc"
 
 ds = xr.open_dataset(infile)
 da = ds["t2m"]
