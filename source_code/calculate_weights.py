@@ -17,9 +17,6 @@ def _wrap_to_180(lon_array):
 def create_us_mask(lat, lon):
     """
     Creates a mask for the contiguous United States.
-
-    Fix: ERA5 longitudes are often 0..360. We wrap them to -180..180 for
-    geometric tests against Natural Earth polygons and for the CONUS lon box.
     """
 
     lon_for_test = _wrap_to_180(lon)

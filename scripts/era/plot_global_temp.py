@@ -8,6 +8,7 @@ import cartopy.feature as cfeature
 from matplotlib.colors import BoundaryNorm
 from matplotlib import cm
 import matplotlib.path as mpath
+from cartopy.util import add_cyclic_point
 
 MELTING_TEMP = 273.15
 
@@ -34,22 +35,17 @@ class GlobalTemperatureAnalyzer:
         var_sel = ds[self.variable].sel(latitude=slice(*self.latitude_range)) - MELTING_TEMP
         return var_sel.mean(dim="time")
 
-    def compute_weights(self, lat: xr.DataArray, lon: xr.DataArray) -> xr.DataArray:
-        cos_lat = np.cos(np.deg2rad(lat.values))
-        cos_lat = np.maximum(cos_lat, 1e-10)
-        weight_array = cos_lat[:, None] * np.ones((len(lat), len(lon)))
-        return xr.DataArray(weight_array, coords=[lat, lon], dims=["latitude", "longitude"])
-
-
     def plot_2d(self, spatial_avg: xr.DataArray, title: str, out_file: str):
-        lat = spatial_avg["latitude"]
-        lon = spatial_avg["longitude"]
-        weights = self.compute_weights(lat, lon)
-        global_mean = (spatial_avg * weights).sum(dim=["latitude", "longitude"]) / weights.sum()
-        print(f"Weighted Global Mean Temp: {global_mean.item():.2f} °C")
+        # Ensure cyclic continuity at 0/360 longitude
+        spatial_avg_cyclic, lon_cyclic = add_cyclic_point(
+            spatial_avg.values,
+            coord=spatial_avg["longitude"].values,
+            axis=1
+        )
+        lat = spatial_avg["latitude"].values
 
-        vmin = float(spatial_avg.min())
-        vmax = float(spatial_avg.max())
+        vmin = float(np.nanmin(spatial_avg_cyclic))
+        vmax = float(np.nanmax(spatial_avg_cyclic))
         if vmin == vmax:
             vmin -= 0.5
             vmax += 0.5
@@ -68,19 +64,22 @@ class GlobalTemperatureAnalyzer:
         gl.top_labels = False
         gl.right_labels = False
 
+        # Circular boundary
         theta = np.linspace(0, 2 * np.pi, 100)
         center, radius = [0.5, 0.5], 0.5
         verts = np.vstack([np.sin(theta), np.cos(theta)]).T
         circle = mpath.Path(verts * radius + center)
         ax.set_boundary(circle, transform=ax.transAxes)
 
-        spatial_avg.plot.contourf(
-            ax=ax,
+        # Plot with cyclic data
+        cf = ax.contourf(
+            lon_cyclic,
+            lat,
+            spatial_avg_cyclic,
             transform=ccrs.PlateCarree(),
             levels=levels,
             cmap=cmap,
-            norm=norm,
-            add_colorbar=False
+            norm=norm
         )
 
         cbar = plt.colorbar(
