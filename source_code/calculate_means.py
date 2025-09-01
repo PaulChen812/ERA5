@@ -16,43 +16,38 @@ def _wrap_to_180(lon_array):
 
 def create_us_mask(lat, lon):
     """
-    Creates a mask for the contiguous United States.
+    Creates a mask for the contiguous United States using regionmask.
+    Returns a boolean array: True inside the U.S., False outside.
     """
 
-    lon_for_test = _wrap_to_180(lon)
-    lat_for_test = np.asarray(lat)
+    # Wrap longitude to [-180, 180]
+    lon_180 = _wrap_to_180(lon)
 
+    # 2D grid of lat/lon
+    lon2d, lat2d = np.meshgrid(lon_180, lat, indexing="xy")
 
+    # Load Natural Earth country polygons
     shpfilename = shpreader.natural_earth(
-        resolution="50m",
-        category="cultural",
-        name="admin_0_countries",
+        resolution="50m", category="cultural", name="admin_0_countries"
     )
     reader = shpreader.Reader(shpfilename)
     countries = list(reader.records())
 
+    # Extract US polygon
     us_poly = [c.geometry for c in countries if c.attributes["ADMIN"] == "United States of America"]
     if not us_poly:
         raise RuntimeError("United States polygon not found in Natural Earth file.")
 
+    # Create regionmask
+    us_region = regionmask.Regions([us_poly[0]], names=["USA"], abbrevs=["USA"])
+    
+    # Mask: returns 0 inside the region, NaN outside
+    mask = us_region.mask(lon2d, lat2d)
+    
+    # Convert to boolean mask
+    us_mask = mask == 0
 
-    mask = regionmask.Regions([us_poly[0]])
-    mask_2d = mask.mask(lon_for_test, lat_for_test) 
-
-
-    lat2d, lon2d = np.meshgrid(lat_for_test, lon_for_test, indexing="ij")
-
-
-    conus_box = (
-        (lat2d >= 24.5) & (lat2d <= 49.5) &  
-        (lon2d >= -125.0) & (lon2d <= -66.5)  
-    )
-
-
-    contiguous_mask = (mask_2d == 0) & conus_box
-
-
-    return contiguous_mask
+    return us_mask
 
 
 def compute_gridcell_area(lat_vals, lon_vals, R=EARTH_RADIUS):
@@ -179,7 +174,7 @@ if __name__ == "__main__":
         directory=directory, variable="t2m", latitude_range=(25, 50)
     )
 
-    years = range(1941, 2026)
+    years = range(1951, 2026)
     months = range(1, 13)
     year_month_pairs = list(itertools.product(years, months))
 
