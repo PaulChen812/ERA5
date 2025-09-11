@@ -5,26 +5,41 @@ import cartopy.feature as cfeature
 import numpy as np
 from pathlib import Path
 
-
+# === Input dataset ===
 infile = Path("../../outputs/era/ERA5_monthly_climatology_gridpoint.nc")
 ds = xr.open_dataset(infile)
 
 months = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"]
-month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 lat = ds["latitude"].values
 lon = ds["longitude"].values
 
-
+# === Output directory ===
 output_dir = Path("../../outputs/era/climatology")
 output_dir.mkdir(parents=True, exist_ok=True)
 
+# === Find global min and max across all months ===
+all_data = []
+for month in months:
+    var_name = f"t2m_{month}"
+    all_data.append(ds[var_name])
 
+combined = xr.concat(all_data, dim="month")
+dmin = float(combined.min())
+dmax = float(combined.max())
+
+# Round to nearest 0.5 for "nice" numbers
+vmin = np.floor(dmin * 2) / 2
+vmax = np.ceil(dmax * 2) / 2
+
+print(f"Global climatology range: {dmin:.2f} to {dmax:.2f}, using vmin={vmin}, vmax={vmax}")
+
+# === Loop over months and plot ===
 for i, month in enumerate(months):
     var_name = f"t2m_{month}"
     temp = ds[var_name].values
-
 
     plt.figure(figsize=(10,8))
     ax = plt.axes(projection=ccrs.LambertConformal())
@@ -33,14 +48,16 @@ for i, month in enumerate(months):
     ax.add_feature(cfeature.COASTLINE.with_scale('50m'))
     ax.add_feature(cfeature.BORDERS.with_scale('50m'))
 
+    # Use consistent levels
+    levels = np.arange(vmin, vmax + 0.5, 0.5)
 
     mesh = ax.contourf(
         lon, lat, temp,
-        20, 
+        levels=levels,
         transform=ccrs.PlateCarree(),
-        cmap="coolwarm"
+        cmap="coolwarm",
+        extend="both"
     )
-
 
     cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02)
     cbar.set_label("Temperature (°C)")

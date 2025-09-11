@@ -1,56 +1,50 @@
 import xarray as xr
-import numpy as np
-import xesmf as xe
 from pathlib import Path
+import numpy as np
+
+# === Input files ===
+era_file = Path("../outputs/interpolated/ERA5_monthly_climatology_on_nclim_grid.nc")
+nclim_file = Path("../outputs/nclim/nclim_gridpoint_climatology.nc")
+
+# === Output file ===
+output_dir = Path("../outputs/comparisons")
+output_dir.mkdir(parents=True, exist_ok=True)
+output_file = output_dir / "ERA5_minus_NCLIM_monthly_climatology.nc"
 
 # === Load datasets ===
-nclim_file = Path("../outputs/nclim/nclim_gridpoint_climatology.nc")
-era5_file  = Path("../outputs/era/ERA5_monthly_climatology_gridpoint.nc")
-weights_file = "nclim_to_era5_weights.nc"
+era_ds = xr.open_dataset(era_file)
+nclim_ds = xr.open_dataset(nclim_file)
 
-ds_nclim = xr.open_dataset(nclim_file)
-ds_era5  = xr.open_dataset(era5_file)
+# === Mapping month names ===
+months = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"]
 
-# nClim variables: tavg_climatology(month, lat, lon)
-# ERA5 variables: t2m_jan, t2m_feb, ... (monthly fields already expanded)
+# === Prepare an empty xarray Dataset to store differences ===
+diff_ds = xr.Dataset(
+    coords={
+        "lat": era_ds.lat,
+        "lon": era_ds.lon,
+        "month": np.arange(1,13)
+    }
+)
 
-# --- Step 1: Put ERA5 into a consistent format (month, lat, lon) ---
-era5_months = [
-    "t2m_jan", "t2m_feb", "t2m_mar", "t2m_apr",
-    "t2m_may", "t2m_jun", "t2m_jul", "t2m_aug",
-    "t2m_sep", "t2m_oct", "t2m_nov", "t2m_dec"
-]
+# === Compute difference ===
+diff_data = []
+for i, month in enumerate(months):
+    era_var = f"t2m_{month}"
+    
+    # Ensure ERA and NCLIM have the same shape
+    era_data = era_ds[era_var]
+    nclim_data = nclim_ds["tavg_climatology"].isel(month=i)
+    
+    # Compute difference
+    diff = era_data - nclim_data
+    diff_data.append(diff)
 
-era5_data = xr.concat([ds_era5[var] for var in era5_months], dim="month")
-era5_data = era5_data.assign_coords(month=np.arange(1, 13))
-era5_data.name = "tavg_climatology"
+# Stack differences into a single variable
+diff_ds["t2m_diff"] = xr.concat(diff_data, dim="month")
+diff_ds["t2m_diff"].attrs["units"] = "degree_Celsius"
+diff_ds["t2m_diff"].attrs["description"] = "ERA5 minus NCLIM monthly climatology"
 
-# --- Step 2: Build regridder from nClimGrid to ERA5 grid ---
-if Path(weights_file).exists():
-    regridder = xe.Regridder(
-        ds_nclim,
-        era5_data,
-        method = "conservative",
-        filename = weights_file,
-        reuse_weights = True
-    )
-else: 
-    regridder = xe.Regridder(
-        ds_nclim,
-        era5_data,
-        method="conservative",   # area-weighted average
-        filename=weights_file,
-        reuse_weights=False
-    )
-
-# --- Step 3: Apply regridding (downscale nClimGrid to ERA5 resolution) ---
-nclim_on_era5 = regridder(ds_nclim["tavg_climatology"])
-
-# Now both datasets have same shape: (month, lat, lon)
-
-# --- Step 4: Compute differences ---
-diff = nclim_on_era5 - era5_data
-
-# === Optional: Save to file for later use ===
-out_file = Path("../outputs/nclim_vs_era5_climatology_diff.nc")
-diff.to_netcdf(out_file)
+# === Save to NetCDF ===
+diff_ds.to_netcdf(output_file)
+print(f"Difference file saved to {output_file}")
