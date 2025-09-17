@@ -24,11 +24,12 @@ ds_out = xr.Dataset(
      "lon": (["lon"], nclim.lon.values)}
 )
 
-# Create bilinear regridder (weights reused if exist)
+# Create bilinear regridder with boundary extrapolation
 regridder = xe.Regridder(
     ds_in, ds_out, method="bilinear",
     filename="era5_to_nclim_bilinear_weights.nc",
-    reuse_weights=True
+    reuse_weights=True,
+    extrap_method="inverse_dist"   # Handle boundaries
 )
 
 # Interpolate each variance field

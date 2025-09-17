@@ -29,14 +29,7 @@ for month in months:
     all_data.append(ds[var_name])
 
 combined = xr.concat(all_data, dim="month")
-dmin = float(combined.min())
-dmax = float(combined.max())
 
-# Round to nearest 0.5 for "nice" values
-vmin = np.floor(dmin * 2) / 2
-vmax = np.ceil(dmax * 2) / 2
-
-print(f"Global variance range: {dmin:.2f} to {dmax:.2f}, using vmin={vmin}, vmax={vmax}")
 
 # === Loop over months and plot ===
 for i, month in enumerate(months):
@@ -50,18 +43,16 @@ for i, month in enumerate(months):
     ax.add_feature(cfeature.COASTLINE.with_scale('50m'))
     ax.add_feature(cfeature.BORDERS.with_scale('50m'))
 
-    # Use consistent levels
-    levels = np.arange(vmin, vmax + 0.5, 0.5)
+
 
     mesh = ax.contourf(
         lon, lat, var_data,
-        levels=levels,
+        levels=20,
         transform=ccrs.PlateCarree(),
         cmap="viridis",
-        extend="both"
     )
 
-    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02)
+    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02, shrink = 0.55)
     cbar.set_label("Variance (°C²)")
 
     plt.title(f"ERA5 U.S. Monthly Variance: {month_names[i]}")

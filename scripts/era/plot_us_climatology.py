@@ -2,7 +2,6 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-import numpy as np
 from pathlib import Path
 
 # === Input dataset ===
@@ -20,22 +19,6 @@ lon = ds["longitude"].values
 output_dir = Path("../../outputs/era/climatology")
 output_dir.mkdir(parents=True, exist_ok=True)
 
-# === Find global min and max across all months ===
-all_data = []
-for month in months:
-    var_name = f"t2m_{month}"
-    all_data.append(ds[var_name])
-
-combined = xr.concat(all_data, dim="month")
-dmin = float(combined.min())
-dmax = float(combined.max())
-
-# Round to nearest 0.5 for "nice" numbers
-vmin = np.floor(dmin * 2) / 2
-vmax = np.ceil(dmax * 2) / 2
-
-print(f"Global climatology range: {dmin:.2f} to {dmax:.2f}, using vmin={vmin}, vmax={vmax}")
-
 # === Loop over months and plot ===
 for i, month in enumerate(months):
     var_name = f"t2m_{month}"
@@ -48,18 +31,16 @@ for i, month in enumerate(months):
     ax.add_feature(cfeature.COASTLINE.with_scale('50m'))
     ax.add_feature(cfeature.BORDERS.with_scale('50m'))
 
-    # Use consistent levels
-    levels = np.arange(vmin, vmax + 0.5, 0.5)
-
+    # Let contourf auto-adjust levels
     mesh = ax.contourf(
         lon, lat, temp,
-        levels=levels,
         transform=ccrs.PlateCarree(),
         cmap="coolwarm",
-        extend="both"
+        # extend="both",
+        levels = 20
     )
 
-    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02)
+    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02, shrink = 0.55)
     cbar.set_label("Temperature (°C)")
 
     plt.title(f"ERA5 U.S. Monthly Climatology: {month_names[i]}")

@@ -22,14 +22,7 @@ output_dir.mkdir(parents=True, exist_ok=True)
 
 # === Compute global min/max across all months ===
 all_data = xr.concat([ds[f"var_{m}"] for m in months], dim="month")
-dmin = float(all_data.min())
-dmax = float(all_data.max())
 
-# Round outward to nearest 0.5
-vmin = np.floor(dmin * 2) / 2
-vmax = np.ceil(dmax * 2) / 2
-
-print(f"Global variance range: {dmin:.2f} to {dmax:.2f}, using vmin={vmin}, vmax={vmax}")
 
 # === Loop over months and plot ===
 for i, month in enumerate(months):
@@ -46,15 +39,14 @@ for i, month in enumerate(months):
     ax.add_feature(cfeature.COASTLINE.with_scale('50m'))
     ax.add_feature(cfeature.BORDERS.with_scale('50m'))
 
-    # Use consistent levels with nice steps
-    levels = np.arange(vmin, vmax + 0.5, 0.5)
+
 
     mesh = ax.contourf(
         lon, lat, variance,
-        levels=levels,
+        levels=20,
         transform=ccrs.PlateCarree(),
         cmap="viridis",
-        extend="both"
+        # extend="both"
     )
 
     cbar = fig.colorbar(mesh, ax=ax, orientation="vertical", shrink=1.0, pad=0.02)

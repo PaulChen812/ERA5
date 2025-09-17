@@ -16,18 +16,9 @@ lat = ds["lat"].values
 lon = ds["lon"].values
 
 # === Output directory ===
-output_dir = Path("../../outputs/nclim")
+output_dir = Path("../../outputs/nclim/climatology")
 output_dir.mkdir(parents=True, exist_ok=True)
 
-# === Compute global min/max across all months ===
-dmin = float(ds["tavg_climatology"].min())
-dmax = float(ds["tavg_climatology"].max())
-
-# Round to nearest 0.5
-vmin = np.floor(dmin * 2) / 2
-vmax = np.ceil(dmax * 2) / 2
-
-print(f"Global climatology range: {dmin:.2f} to {dmax:.2f}, using vmin={vmin}, vmax={vmax}")
 
 # === Loop over months and plot ===
 for i, month_name in enumerate(month_names):
@@ -40,18 +31,17 @@ for i, month_name in enumerate(month_names):
     ax.add_feature(cfeature.COASTLINE.with_scale('50m'))
     ax.add_feature(cfeature.BORDERS.with_scale('50m'))
 
-    # Use consistent levels
-    levels = np.arange(vmin, vmax + 0.5, 0.5)
+
 
     mesh = ax.contourf(
         lon, lat, temp,
-        levels=levels,
+        levels=20,
         transform=ccrs.PlateCarree(),
         cmap="coolwarm",
-        extend="both"
+        # extend="both"
     )
 
-    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02)
+    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02, shrink = 0.55)
     cbar.set_label("Temperature (°C)")
 
     plt.title(f"NCLIM U.S. Monthly Climatology: {month_name}")

@@ -3,11 +3,11 @@ import xesmf as xe
 from pathlib import Path
 
 # === Input files ===
-era5_file = Path("../outputs/era/ERA5_monthly_climatology_gridpoint.nc")
-nclim_file = Path("../outputs/nclim/nclim_gridpoint_climatology.nc")
+era5_file = Path("../../outputs/era/ERA5_monthly_climatology_gridpoint.nc")
+nclim_file = Path("../../outputs/nclim/nclim_gridpoint_climatology.nc")
 weights_file = "era5_to_nclim_bilinear_weights.nc"
 # === Output file ===
-outfile = Path("../outputs/era/ERA5_monthly_climatology_on_nclim_grid.nc")
+outfile = Path("../../outputs/era/ERA5_monthly_climatology_on_nclim_grid.nc")
 
 # --- Load datasets ---
 era5 = xr.open_dataset(era5_file)
@@ -29,16 +29,19 @@ ds_out = xr.Dataset(
 )
 
 if Path(weights_file).exists():
-# Create regridder (bilinear interpolation)
-    regridder = xe.Regridder(ds_in, ds_out, method="bilinear", 
-                            filename="era5_to_nclim_bilinear_weights.nc", 
-                            reuse_weights=True)
-
+    # Create regridder (bilinear + boundary extrapolation)
+    regridder = xe.Regridder(
+        ds_in, ds_out, method="bilinear",
+        filename=weights_file,
+        reuse_weights=True,
+        extrap_method="nearest_s2d"  # Handle boundary conditions
+    )
 else:
     regridder = xe.Regridder(
         ds_in, ds_out, method="bilinear",
-        filename = "era5_to_nclim_bilinear_weights.nc",
-        reuse_weights=False
+        filename=weights_file,
+        reuse_weights=False,
+        extrap_method="inverse_dist"  # Handle boundary conditions
     )
 
 # Regrid each ERA5 monthly climatology field

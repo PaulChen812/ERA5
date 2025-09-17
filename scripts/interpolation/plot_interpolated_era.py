@@ -22,14 +22,7 @@ output_dir.mkdir(parents=True, exist_ok=True)
 
 # === Compute global min/max across all months ===
 all_data = xr.concat([ds[f"t2m_{m}"] for m in months], dim="month")
-dmin = float(all_data.min())
-dmax = float(all_data.max())
 
-# Round outward to nearest 0.5 for “nice” colorbar
-vmin = np.floor(dmin * 2) / 2
-vmax = np.ceil(dmax * 2) / 2
-
-print(f"Global climatology range: {dmin:.2f} to {dmax:.2f}, using vmin={vmin}, vmax={vmax}")
 
 # === Loop over months and plot ===
 for i, month in enumerate(months):
@@ -44,17 +37,17 @@ for i, month in enumerate(months):
     ax.add_feature(cfeature.BORDERS.with_scale('50m'))
 
     # Use consistent levels for all months
-    levels = np.arange(vmin, vmax + 0.5, 0.5)
+
 
     mesh = ax.contourf(
         lon, lat, temp,
-        levels=levels,
+        levels=20,
         transform=ccrs.PlateCarree(),
         cmap="coolwarm",
-        extend="both"
+        # extend="both"
     )
 
-    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02)
+    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02, shrink = 0.55)
     cbar.set_label("Temperature (°C)")
 
     plt.title(f"ERA5 on nClim Grid – U.S. Monthly Climatology: {month_names[i]}")

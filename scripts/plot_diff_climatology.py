@@ -16,14 +16,13 @@ lat = ds["lat"].values
 lon = ds["lon"].values
 
 # === Output directory for plots ===
-output_dir = Path("../outputs/comparisons")
+output_dir = Path("../outputs/comparisons/climatology")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # === Clip values to -10 to +10°C for plotting ===
-data_clipped = ds["t2m_diff"].clip(min=-10, max=10)
+data_clipped = ds["t2m_diff"].clip(min=-5, max=5)
 
-# Symmetric colorbar range
-vmin, vmax = -10, 10
+
 
 # === Loop over months and plot ===
 for i, month_name in enumerate(month_names):
@@ -36,18 +35,17 @@ for i, month_name in enumerate(month_names):
     ax.add_feature(cfeature.COASTLINE.with_scale('50m'))
     ax.add_feature(cfeature.BORDERS.with_scale('50m'))
 
-    # Contour levels every 0.5°C
-    levels = np.arange(vmin, vmax + 0.5, 0.5)
+
 
     mesh = ax.contourf(
         lon, lat, temp_diff,
-        levels=levels,
+        levels=10,
         transform=ccrs.PlateCarree(),
         cmap="RdBu_r",
-        extend='both'
+        # extend='both'
     )
 
-    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02)
+    cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02, shrink = 0.55)
     cbar.set_label("Temperature Difference (°C)")
 
     plt.title(f"ERA5 minus NCLIM Monthly Climatology: {month_name}")

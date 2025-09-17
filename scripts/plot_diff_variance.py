@@ -16,7 +16,7 @@ lat = ds["lat"].values
 lon = ds["lon"].values
 
 # === Output directory for plots ===
-output_dir = Path("../outputs/comparisons")
+output_dir = Path("../outputs/comparisons/variance")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # === Compute global min/max and round to nice numbers ===
@@ -49,10 +49,10 @@ for i, month_name in enumerate(month_names):
 
     mesh = ax.contourf(
         lon, lat, var_diff,
-        levels=levels,
+        levels=10,
         transform=ccrs.PlateCarree(),
         cmap="viridis",
-        extend='both'
+        # extend='both'
     )
 
     cbar = plt.colorbar(mesh, orientation="vertical", pad=0.02)
